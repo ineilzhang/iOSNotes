@@ -1,0 +1,96 @@
+### Objective-C 多态
+
+多态的概念：相同的接口，不同的是现，不同的类可以定义相同的方法。面向对象的多态分为编译时多态和运行时多态。
+
+#### 1. 编译时多态
+- 对于 Java 而言，编译时多态是指通过参数列表的不同来区分不同的同名方法。
+- 对于 Objective-C 而言，在同一个类中参数不同则方法的名字自然不同。
+
+#### 2. 运行时多态
+对于 Objective-C 语言，可以在运行时添加新的数据类型和程序模块。其多态的特性可以通过三个方面来实现：
+
+##### 2.1 动态类型识别
+对于 id 类型，编译时不进行类型检查，是弱类型。id 类型能使程序直到执行时才确定对象的类型和向对象发送的消息。任意的 NSObject 的子类对象都会继承 isa 实例变量，每个实例的 isa 都指向该实例的类对象[见番外]。在运行时要向对象发送消息是通过 SEL[见番外] 来查找方法的。动态类型识别常用的方法如下：
+```objectivec
+//是否是 classObj 类或其子类
+- (BOOL)isKindOfClass:classObj
+//是否是 classObje 的实例
+- (BOOL)isMemberOfClass:classObj
+//是否能响应 selector 消息
+- (BOOL)respondsToSelector:selector
+//由 aClassName 得到类对象
+Class _Nullable NSClassFromString(NSString *aClassName);
+//由 aClass 类对象得到类名
+NSString *NSStringFromClass(Class aClass);
+//通过类名得到类对象
+Class rectClass = [Rectangle class];
+//通过实例得到类对象
+Class aClass = [anObject class];
+```
+
+##### 2.2 动态绑定
+
+动态绑定是指一个对象能够响应的消息不是在编译时决定的而是在运行时决定的。运行时系统首先确定接收者的类型（动态类型识别），然后根据消息名在类对象的方法列表中选择相应的方法执行。消息发送的底层是通过```objc_msgSend(receiver, @selector(message))```来实现的，其过程如下：
+- 首先通过第一个参数 receiver 找到其 isa 指针，然后在 isa 指向的类对象中的第二个参数 selector 来查找方法；
+- 如果没有找到就用当前类对象的父类的 isa 指针到父类的类对象中查找；
+- 如果找到方法，在根据 receiver 中的 self 指针找到当前的对象，调用当前对象具体的方法实现（IMP见番外）。
+- 如果一直找到 NSObject 类对象也没找到，则会报告不能识别的消息错误。
+
+
+##### 2.3 动态加载
+
+Objective-C 允许在运行时动态的加载一个新类，需要以下步骤：
+
+- 调用 Class objc_allocateClassPair(Class superclass, const char *name,size_t extraBytes) 方法，创建类和元类
+- 调用 objc_registerClassPair(Class cls) 方法，注册该类
+- 调用 void class_addMethods(Class, struct objc_method_list *) 方法，添加类的方法; 调用 class_addIvar 方法添加类实例变量。
+
+
+--------------------------
+
+番外：
+
+### 类对象
+
+- 在运行时，所有类的实例都由类对象生成，由实例 isa 指针指向类对象。
+- 类对象底层实现是一种结构体，存储了类的大小，类名称，类的版本和函数的映射表等。这些信息在编译时就已经确定，在程序启动时加载到内存中。
+- 类对象只能使用类方法，不能使用实例方法。
+
+### SEL 类型
+
+Objective-C 在编译的时候，会根据方法的名字来生成一个用来区分这个方法的唯一的标识 ID ，这个标识 ID 就是 SEL 类型。只要方法的名字相同，那么他们的标识 ID 就是相同的，可以通过 @selector() 指示符获得 SEL 类型。
+```objectivec
+SEL method = @selector(draw);
+//根据方法名得到方法标识
+NSSelectorFromString(NSString *);
+//得到 SEL 类型的方法名
+NSStringFromSelector(SEL);
+```
+
+### IMP
+
+IMP 是 implemention 的缩写，是 Objective-C 方法实现的代码的地址，类似于 C 语言中的函数指针。通过 IMP 可以直接调用任何一个方法，免去发送消息的代价。  
+```objectivec
+//通过 SEL 类型获得 IMP
+- (IMP)methodForSelector:(SEL)aSelector;
+
+SEL print_sel = NSSelectorFromString(@"print");
+IMP imp = [person methodForSelector:pirnt_sel];
+//等效于[person pirnt:@"print xxx"]
+imp(person,print_sel,@"print xxx");
+```
+友情链接：
+
+[Objective-C 多态][1]
+[Objective-C 中消息的发送][2]
+[Objective-C 对象模型及应用][3]
+[从源代码看 ObjC 中消息的发送][5]
+[markdown 语法][4]
+
+
+
+[1]:http://blog.csdn.net/tskyfree/article/details/7984887
+[2]:http://draveness.me/message.html
+[3]:http://blog.devtang.com/2013/10/15/objective-c-object-model/
+[4]:http://xianbai.me/learn-md/article/syntax/links.html
+[5]:http://draveness.me/message.html

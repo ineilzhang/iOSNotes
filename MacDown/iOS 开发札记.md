@@ -262,3 +262,16 @@ FaceTime: App-Prefs:root=FACETIME
 
 
 ```
+
+####20. 自定义 KVO
+
+1. 创建NSObject分类，添加两个方法
+	1. - (void)NZ_removeObserver:forKeyPath:
+	2. - (void)NZ_addObserver:forKeyPath:withBlock:
+2. 在添加观察者对象过程中，经过以下几个步骤：
+	1. 检查对象的类簇中有没有 setter 方法，如果没有抛出异常
+	2. 如果是第一次添加观察者对象且该对象不是 KVO 子类对象，则生成 KVO 子类对象
+	3. 重写 KVO 子类对象的 class 方法来修改 isa 指针的值，隐藏该类
+	4. 重写 KVO 子类对象的 setter 方法，如果没有实现 setter 方法的话
+	5. 把观察信息 ObservationInfo 保存在 associatedObject 对象中。
+3. 实现移除观察者方法
